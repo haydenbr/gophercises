@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -23,7 +24,10 @@ func (q *QuizQuestion) IsCorrect() bool {
 }
 
 func main() {
-	fileContents, readFileError := os.ReadFile("problems-short.csv")
+	fileName := flag.String("csv", "problems-short.csv", "a csv file in the format of 'question,delimiter<optional>,answer'")
+	flag.Parse()
+
+	fileContents, readFileError := os.ReadFile(*fileName)
 
 	if readFileError != nil {
 		log.Fatalln(readFileError)
@@ -100,7 +104,7 @@ func fold[T any, R any](s []T, initial R, f func(R, T, int) R) R {
 }
 
 // source: https://golang.google.cn/src/os/file.go?s=20888:20930#L662
-// copied here for
+// copied here to walk through with a debugger to see how it works
 func ReadFile(name string) ([]byte, error) {
 	f, err := os.Open(name)
 	if err != nil {
