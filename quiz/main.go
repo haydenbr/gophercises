@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"os"
 	"strings"
+	"time"
 )
 
 type QuizQuestion struct {
@@ -19,15 +19,79 @@ type QuizQuestion struct {
 	Response  string
 }
 
+type ResponseReader struct {
+	Reader        *bufio.Reader
+	Response      chan string
+	ResponseError chan error
+}
+
+func NewResponseReader() *ResponseReader {
+	responseReader := new(ResponseReader)
+
+	responseReader.Reader = bufio.NewReader(os.Stdin)
+	responseReader.Response = make(chan string)
+	responseReader.ResponseError = make(chan error)
+
+	return responseReader
+}
+
+func (r *ResponseReader) ReadResponse() {
+	input, inputError := r.Reader.ReadString('\n')
+
+	if inputError != nil {
+		r.ResponseError <- inputError
+	} else {
+		r.Response <- strings.ToLower(strings.TrimSpace(input))
+	}
+}
+
 func (q *QuizQuestion) IsCorrect() bool {
 	return q.Answer == q.Response
 }
 
+func (q *QuizQuestion) DisplayQuestion() {
+	fmt.Print(q.Question, q.Delimiter)
+}
+
 func main() {
 	fileName := flag.String("csv", "problems-short.csv", "a csv file in the format of 'question,delimiter<optional>,answer'")
+	limit := flag.Int64("limit", 30, "the time limit for the quiz, in seconds")
 	flag.Parse()
 
-	fileContents, readFileError := os.ReadFile(*fileName)
+	quizQuestions := parseCsv(*fileName)
+	responseReader := NewResponseReader()
+	limitTimer := time.NewTimer(time.Duration(*limit) * time.Second)
+	timerExpired := false
+
+	for i := 0; i < len(quizQuestions) && !timerExpired; i++ {
+		q := quizQuestions[i]
+		q.DisplayQuestion()
+
+		go responseReader.ReadResponse()
+
+		select {
+		case response := <-responseReader.Response:
+			q.Response = response
+		case responseError := <-responseReader.ResponseError:
+			log.Fatalln(responseError)
+		case <-limitTimer.C:
+			timerExpired = true
+		}
+	}
+
+	if timerExpired {
+		fmt.Println("\nTime is up!")
+	} else {
+		limitTimer.Stop()
+	}
+
+	finalScore := computeScore(quizQuestions)
+
+	fmt.Printf("Your score: %.2f%%\n", finalScore*100)
+}
+
+func parseCsv(fileName string) []*QuizQuestion {
+	fileContents, readFileError := os.ReadFile(fileName)
 
 	if readFileError != nil {
 		log.Fatalln(readFileError)
@@ -54,22 +118,7 @@ func main() {
 		})
 	}
 
-	stdin := bufio.NewReader(os.Stdin)
-
-	for _, q := range quizQuestions {
-		fmt.Print(q.Question, q.Delimiter)
-		input, inputError := stdin.ReadString('\n')
-
-		if inputError != nil {
-			log.Fatalln(inputError)
-		}
-
-		q.Response = strings.TrimSpace(input)
-	}
-
-	finalScore := computeScore(quizQuestions)
-
-	fmt.Printf("Your score: %.2f%%\n", finalScore*100)
+	return quizQuestions
 }
 
 func computeScore(quizQuestions []*QuizQuestion) float64 {
@@ -86,11 +135,6 @@ func computeScore(quizQuestions []*QuizQuestion) float64 {
 	})
 
 	return float64(correctResponses) / float64(len(quizQuestions))
-}
-
-func roundFloat(val float64, precision uint) float64 {
-	ratio := math.Pow(10, float64(precision))
-	return math.Round(val*ratio) / ratio
 }
 
 func fold[T any, R any](s []T, initial R, f func(R, T, int) R) R {
