@@ -61,10 +61,9 @@ func main() {
 	quizQuestions := parseCsv(*fileName)
 	responseReader := NewResponseReader()
 	limitTimer := time.NewTimer(time.Duration(*limit) * time.Second)
-	timerExpired := false
 
-	for i := 0; i < len(quizQuestions) && !timerExpired; i++ {
-		q := quizQuestions[i]
+problemLoop:
+	for _, q := range quizQuestions {
 		q.DisplayQuestion()
 
 		go responseReader.ReadResponse()
@@ -75,15 +74,12 @@ func main() {
 		case responseError := <-responseReader.ResponseError:
 			log.Fatalln(responseError)
 		case <-limitTimer.C:
-			timerExpired = true
+			fmt.Println("\nTime is up!")
+			break problemLoop
 		}
 	}
 
-	if timerExpired {
-		fmt.Println("\nTime is up!")
-	} else {
-		limitTimer.Stop()
-	}
+	limitTimer.Stop()
 
 	finalScore := computeScore(quizQuestions)
 
