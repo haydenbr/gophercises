@@ -48,8 +48,7 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := make(map[string]string)
 
-	for i := 0; i < len(parsedYaml); i++ {
-		yamlEntry := parsedYaml[i]
+	for _, yamlEntry := range parsedYaml {
 		pathsToUrls[yamlEntry.Path] = yamlEntry.Url
 	}
 

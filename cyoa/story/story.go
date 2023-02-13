@@ -1,0 +1,5 @@
+package story
+
+func Bob() {
+
+}

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "quiz"
+		},
+		{
+			"path": "urlshort"
+		},
+		{
+			"path": "cyoa"
+		}
+	],
+	"settings": {}
+}
