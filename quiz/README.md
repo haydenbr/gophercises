@@ -1,4 +1,4 @@
-# Quiz
+# Exercise 1: Quiz
 
 source: https://github.com/gophercises/quiz
 
