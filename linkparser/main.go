@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"unicode"
 
 	"golang.org/x/net/html"
@@ -27,6 +28,19 @@ func isEmpty(s string) bool {
 	return isEmpty
 }
 
+func getHref(node *html.Node) string {
+	href := ""
+
+	for _, attr := range node.Attr {
+		if attr.Key == "href" {
+			href = attr.Val
+			break
+		}
+	}
+
+	return href
+}
+
 func getTextContent(node *html.Node) string {
 	textContent := ""
 
@@ -35,7 +49,7 @@ func getTextContent(node *html.Node) string {
 	}
 
 	if node.Type == html.TextNode && !isEmpty(node.Data) {
-		textContent += node.Data
+		textContent += strings.TrimSpace(node.Data)
 	}
 
 	if node.NextSibling != nil {
@@ -45,13 +59,27 @@ func getTextContent(node *html.Node) string {
 	return textContent
 }
 
-func walkHtmlTree(node *html.Node, links []Link) {
+func walkHtmlTree(node *html.Node) []Link {
+	links := make([]Link, 0, 10)
 
+	if node.FirstChild != nil {
+		links = append(links, walkHtmlTree(node.FirstChild)...)
+	}
+
+	if node.Type == html.ElementNode && node.Data == "a" {
+		links = append(links, Link{Href: getHref(node), Text: getTextContent(node.FirstChild)})
+	}
+
+	if node.NextSibling != nil {
+		links = append(links, walkHtmlTree(node.NextSibling)...)
+	}
+
+	return links
 }
 
 func main() {
 	// fileBytes, readFileErr := ioutil.ReadFile("ex1.html")
-	file, openFileErr := os.Open("ex1.html")
+	file, openFileErr := os.Open("ex4.html")
 
 	if openFileErr != nil {
 		panic(openFileErr)
@@ -63,5 +91,5 @@ func main() {
 		panic(htmlParseErr)
 	}
 
-	fmt.Println(getTextContent(rootNode))
+	fmt.Println(walkHtmlTree(rootNode))
 }
