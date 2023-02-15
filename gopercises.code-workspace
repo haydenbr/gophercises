@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "cyoa"
+		},
+		{
+			"path": "linkparser"
 		}
 	],
 	"settings": {}
