@@ -78,7 +78,6 @@ func walkHtmlTree(node *html.Node) []Link {
 }
 
 func main() {
-	// fileBytes, readFileErr := ioutil.ReadFile("ex1.html")
 	file, openFileErr := os.Open("ex4.html")
 
 	if openFileErr != nil {
